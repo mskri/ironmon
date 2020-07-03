@@ -1,0 +1,32 @@
+{
+  "name": "ironmon3",
+  "version": "0.1.0",
+  "description": "",
+  "scripts": {
+    "dev": "nodemon src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Sakari Mursu",
+    "email": "sakari@mursu.dev",
+    "url": "https://mursu.dev"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^14.0.14",
+    "dotenv": "^8.2.0",
+    "husky": "^4.2.5",
+    "nodemon": "^2.0.4",
+    "prettier": "^2.0.5",
+    "pretty-quick": "^2.0.1",
+    "ts-node": "^8.10.2",
+    "tsconfig-paths": "^3.9.0",
+    "typescript": "^3.9.6"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged"
+    }
+  }
+}

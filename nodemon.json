@@ -1,0 +1,12 @@
+{
+  "ignore": [".git", "node_modules"],
+  "verbose": true,
+  "execMap": {
+    "ts": "node -r ts-node/register -r dotenv/config"
+  },
+  "watch": ["src/"],
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "ext": "js,json,ts"
+}
