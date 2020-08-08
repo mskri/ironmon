@@ -1,5 +1,5 @@
 import { createCommand } from 'monbot';
-import { MessageEmbed, GuildMember, Message } from 'discord.js';
+import { MessageEmbed, GuildMember } from 'discord.js';
 import {
   addHours,
   addMinutes,
@@ -8,8 +8,8 @@ import {
   subHours,
 } from 'date-fns';
 import { formatToTimeZone } from 'date-fns-timezone';
-import { URL_CREATE_USER, URL_CREATE_EVENT } from '../../constants/urls';
-import { logger } from '../../logger';
+import { URL_CREATE_USER, URL_CREATE_EVENT } from 'constants/urls';
+import { logger } from 'logger';
 import axios from 'axios';
 
 const timeZone = 'Europe/Berlin';
