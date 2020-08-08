@@ -27,7 +27,6 @@
     "prettier": "^2.0.5",
     "pretty-quick": "^2.0.1",
     "ts-node": "^8.10.2",
-    "tsconfig-paths": "^3.9.0",
     "typescript": "^3.9.6"
   },
   "husky": {
@@ -35,5 +34,10 @@
       "pre-commit": "pretty-quick --staged"
     }
   },
-  "dependencies": {}
+  "dependencies": {
+    "date-fns": "^2.15.0",
+    "date-fns-timezone": "^0.1.4",
+    "discord.js": "^12.2.0",
+    "monbot": "^0.1.6"
+  }
 }
