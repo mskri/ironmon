@@ -1,5 +1,5 @@
 import { createCommand } from 'monbot';
-import { MessageEmbed, GuildMember } from 'discord.js';
+import { MessageEmbed, GuildMember, Message } from 'discord.js';
 import {
   addHours,
   addMinutes,
@@ -8,6 +8,9 @@ import {
   subHours,
 } from 'date-fns';
 import { formatToTimeZone } from 'date-fns-timezone';
+import { URL_CREATE_USER, URL_CREATE_EVENT } from '../../constants/urls';
+import { logger } from '../../logger';
+import axios from 'axios';
 
 const timeZone = 'Europe/Berlin';
 const requiredRole = '494171126038134795'; // Mythic team
@@ -19,26 +22,59 @@ type AddEventArgs = {
   start: Date;
   duration: string;
   color: string;
+  url: string;
 };
+
+type User = {
+  id: number;
+  username: string;
+  discordTag: string;
+  discordId: string;
+};
+
+type Event = {
+  id: string;
+  title: string;
+  description: string;
+  color: string;
+  url: string;
+  startAt: Date;
+  endAt: Date;
+  userId: string;
+  guildId: string;
+  channelId: string;
+  messageId: string;
+  createdAt: string;
+  modifiedAt: string;
+};
+
+type EventPostData = Pick<
+  Event,
+  | 'title'
+  | 'description'
+  | 'color'
+  | 'url'
+  | 'startAt'
+  | 'endAt'
+  | 'guildId'
+  | 'channelId'
+  | 'messageId'
+>;
 
 export const addEvent = createCommand({
   name: 'addEvent',
   trigger: /^!add-event\s/i,
-  // requiredRoles: [
-  //   '380065303440392203', // Officers
-  //   '494171126038134795', // Mythic team
-  // ],
-  // channels: ['bot-test'],
-  // guilds: [
-  //   '369588869794103297', // IronBot
-  // ],
-  run: function ({ channel, content, guild }, { removeTrigger, parseArgs }) {
+  run: async function (
+    { channel, content, guild, member, id: messageId },
+    { removeTrigger, parseArgs }
+  ) {
     const { args, hasMissingArgs, missingArgs } = parseArgs<AddEventArgs>(
       removeTrigger(content),
       {
         requiredArgs,
         defaults: {
           color: '#0099ff',
+          url: 'https://google.com',
         },
       }
     );
@@ -48,45 +84,80 @@ export const addEvent = createCommand({
       return;
     }
 
-    const { title, desc, start, duration, color } = args;
-    console.log({ args });
-    const membersWithRequiredRole = (
-      members: GuildMember[],
-      member: GuildMember
-    ): GuildMember[] => {
-      if (member.roles.cache.get(requiredRole) !== undefined) {
-        members.push(member);
-      }
-      return members;
+    const {
+      title,
+      desc: description,
+      start: startAt,
+      duration,
+      color,
+      url,
+    } = args;
+
+    const eventData: EventPostData = {
+      title,
+      description,
+      color,
+      url,
+      startAt,
+      endAt: calculateEnd(startAt, duration),
+      guildId: guild?.id ?? '',
+      channelId: channel.id,
+      messageId,
     };
 
-    const acceptedMembersSorted =
-      guild?.channels.cache
-        .find(({ id: channelId }) => channelId === channel.id)
-        ?.members.reduce(membersWithRequiredRole, [])
-        .sort(byMemberUsername) ?? [];
+    try {
+      const eventAuthor = await axios.post<User>(URL_CREATE_USER, {
+        username: member?.user.username,
+        discordTag: member?.user.tag,
+        discordId: member?.user.id,
+      });
 
-    const eventEmbed = createEmbed({
-      id: '1',
-      title,
-      description: desc,
-      startAt: start,
-      duration,
-      acceptedMembers: acceptedMembersSorted,
-      declinedMembers: acceptedMembersSorted,
-      notSetMembers: acceptedMembersSorted,
-      color,
-    });
+      const ev = await axios.post<{ id: number }>(URL_CREATE_EVENT, {
+        ...eventData,
+        userId: eventAuthor.data.id,
+      });
 
-    channel.send(eventEmbed);
+      const eventId = ev.data.id;
+
+      const membersWithRequiredRole = (
+        members: GuildMember[],
+        member: GuildMember
+      ): GuildMember[] => {
+        if (member.roles.cache.get(requiredRole) !== undefined) {
+          members.push(member);
+        }
+        return members;
+      };
+
+      const acceptedMembersSorted =
+        guild?.channels.cache
+          .find(({ id: channelId }) => channelId === channel.id)
+          ?.members.reduce(membersWithRequiredRole, [])
+          .sort(byMemberUsername) ?? [];
+
+      const eventEmbed = createEmbed({
+        ...eventData,
+        id: eventId,
+        duration,
+        acceptedMembers: acceptedMembersSorted,
+        declinedMembers: acceptedMembersSorted,
+        notSetMembers: acceptedMembersSorted,
+      });
+
+      channel.send(eventEmbed);
+    } catch (e) {
+      logger.error(e);
+      return channel.send('Could not create new event');
+    }
   },
 });
 
 type CreateEmbedParams = {
-  id: string;
+  id: number;
   title: string;
   description: string;
   startAt: Date;
+  endAt: Date;
   duration: string;
   acceptedMembers: GuildMember[];
   declinedMembers: GuildMember[];
@@ -99,13 +170,13 @@ const createEmbed = ({
   title,
   description,
   startAt,
+  endAt,
   duration,
   acceptedMembers,
   declinedMembers,
   notSetMembers,
   color,
 }: CreateEmbedParams): MessageEmbed => {
-  const endAt = calculateEnd(startAt, duration);
   const timestamp = createTimestamp(startAt, endAt);
 
   return (
