@@ -2,7 +2,7 @@
   "ignore": [".git", "node_modules"],
   "verbose": true,
   "execMap": {
-    "ts": "node -r ts-node/register -r dotenv/config"
+    "ts": "node -r tsconfig-paths/register -r ts-node/register -r dotenv/config"
   },
   "watch": ["src/"],
   "env": {
