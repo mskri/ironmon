@@ -13,4 +13,4 @@ export const ADMINS: string[] = process.env.ADMINS?.split(',') ?? [];
 
 export const API_BASE = process.env.API_BASE;
 
-export const ENV = process.env.ENV;
+export const ENV = process.env.NODE_ENV;
