@@ -1,15 +1,7 @@
-import dotenv from 'dotenv';
+export const BOT_AUTH_TOKEN: string = process.env.BOT_AUTH_TOKEN ?? '';
 
-const { error, parsed } = dotenv.config();
+export const ADMINS: string[] = process.env.ADMINS?.split(',') ?? [];
 
-if (error) {
-  throw error;
-}
+export const API_BASE = process.env.API_BASE;
 
-export const BOT_AUTH_TOKEN: string = parsed?.BOT_AUTH_TOKEN ?? '';
-
-export const ADMINS: string[] = parsed?.ADMINS?.split(',') ?? [];
-
-export const API_BASE = parsed?.API_BASE;
-
-export const ENV = parsed?.NODE_ENV;
+export const ENV = process.env.NODE_ENV;
