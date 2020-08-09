@@ -7,8 +7,8 @@
     "build": "tsc",
     "start": "NODE_ENV=development NODE_PATH=src/ ts-node -r dotenv/config src/index.ts",
     "production": "NODE_ENV=production NODE_PATH=dist/ node -r dotenv/config dist/index.js",
-    "lint": "eslint 'src/**/*.{js,ts,tsx}'",
-    "lint:fix": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix"
+    "lint": "eslint 'src/**/*.{js,ts}'",
+    "lint:fix": "eslint 'src/**/*.{js,ts}' --quiet --fix"
   },
   "keywords": [],
   "author": "Sakari Mursu <sakari@mursu.dev> (https://mursu.dev)",
