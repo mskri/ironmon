@@ -11,11 +11,7 @@
     "lint:fix": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix"
   },
   "keywords": [],
-  "author": {
-    "name": "Sakari Mursu",
-    "email": "sakari@mursu.dev",
-    "url": "https://mursu.dev"
-  },
+  "author": "Sakari Mursu <sakari@mursu.dev> (https://mursu.dev)",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^14.0.14",
