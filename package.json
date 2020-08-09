@@ -1,7 +1,7 @@
 {
   "name": "ironmon",
   "version": "0.1.0",
-  "description": "",
+  "description": "A discord bot for managing guild events.",
   "scripts": {
     "dev": "nodemon src/index.ts",
     "start": "NODE_ENV=development NODE_PATH=src/ ts-node src/index.ts",
