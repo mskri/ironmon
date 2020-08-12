@@ -1,81 +1,42 @@
+import axios from 'axios';
 import { createCommand } from 'monbot';
-import { MessageEmbed, GuildMember } from 'discord.js';
-import {
-  addHours,
-  addMinutes,
-  differenceInHours,
-  differenceInMinutes,
-  subHours,
-} from 'date-fns';
+import { MessageEmbed, GuildMember, Message, User } from 'discord.js';
+import { addHours, addMinutes } from 'date-fns';
 import { formatToTimeZone } from 'date-fns-timezone';
 import { URL_CREATE_USER, URL_CREATE_EVENT } from 'constants/urls';
 import { logger } from 'logger';
-import axios from 'axios';
+import { Event } from 'eventAttenance/eventModel';
 
 const timeZone = 'Europe/Berlin';
-const requiredRole = '494171126038134795'; // Mythic team
 const requiredArgs = ['title', 'desc', 'start', 'duration'];
+const emojis = {
+  accept: 'accepted',
+  decline: 'declined',
+};
 
 type AddEventArgs = {
   title: string;
   desc: string;
+  type: string;
   start: Date;
   duration: string;
   color: string;
   url: string;
 };
 
-type User = {
-  id: number;
-  username: string;
-  discordTag: string;
-  discordId: string;
-};
-
-type Event = {
-  id: string;
-  title: string;
-  description: string;
-  color: string;
-  url: string;
-  startAt: Date;
-  endAt: Date;
-  userId: string;
-  guildId: string;
-  channelId: string;
-  messageId: string;
-  createdAt: string;
-  modifiedAt: string;
-};
-
-type EventPostData = Pick<
-  Event,
-  | 'title'
-  | 'description'
-  | 'color'
-  | 'url'
-  | 'startAt'
-  | 'endAt'
-  | 'guildId'
-  | 'channelId'
-  | 'messageId'
->;
-
 export const addEvent = createCommand({
   name: 'addEvent',
   trigger: /^!add-event\s/i,
-  run: async function (
+  run: async (
     { channel, content, guild, member, id: messageId },
     { removeTrigger, parseArgs }
-  ) {
+  ) => {
+    const contentWithoutTrigger = removeTrigger(content);
     const { args, hasMissingArgs, missingArgs } = parseArgs<AddEventArgs>(
-      removeTrigger(content),
+      contentWithoutTrigger,
       {
         requiredArgs,
-        defaults: {
-          color: '#0099ff',
-          url: 'https://google.com',
-        },
+        defaults: { type: 'raid' },
       }
     );
 
@@ -87,141 +48,144 @@ export const addEvent = createCommand({
     const {
       title,
       desc: description,
+      type,
       start: startAt,
       duration,
       color,
       url,
     } = args;
-
-    const eventData: EventPostData = {
-      title,
-      description,
-      color,
-      url,
-      startAt,
-      endAt: calculateEnd(startAt, duration),
-      guildId: guild?.id ?? '',
-      channelId: channel.id,
-      messageId,
-    };
+    const endAt = calculateEnd(startAt, duration);
 
     try {
       const eventAuthor = await axios.post<User>(URL_CREATE_USER, {
+        id: member?.user.id,
         username: member?.user.username,
         discordTag: member?.user.tag,
-        discordId: member?.user.id,
       });
 
-      const ev = await axios.post<{ id: number }>(URL_CREATE_EVENT, {
-        ...eventData,
+      await axios.post<Event>(URL_CREATE_EVENT, {
+        id: messageId,
+        title,
+        description,
+        type: type.toLowerCase(),
+        color,
+        url,
         userId: eventAuthor.data.id,
+        startAt: startAt.toISOString(),
+        endAt: endAt.toISOString(),
       });
 
-      const eventId = ev.data.id;
-
-      const membersWithRequiredRole = (
-        members: GuildMember[],
-        member: GuildMember
-      ): GuildMember[] => {
-        if (member.roles.cache.get(requiredRole) !== undefined) {
-          members.push(member);
-        }
-        return members;
-      };
-
-      const acceptedMembersSorted =
-        guild?.channels.cache
-          .find(({ id: channelId }) => channelId === channel.id)
-          ?.members.reduce(membersWithRequiredRole, [])
-          .sort(byMemberUsername) ?? [];
+      const notSetUsers = guild?.channels.cache
+        .find(({ id }) => id === channel.id)
+        ?.members.sort(byMemberUsername)
+        .map((member) => member.id);
 
       const eventEmbed = createEmbed({
-        ...eventData,
-        id: eventId,
+        title,
+        description,
+        type,
+        color,
+        url,
+        startAt,
+        endAt,
         duration,
-        acceptedMembers: acceptedMembersSorted,
-        declinedMembers: acceptedMembersSorted,
-        notSetMembers: acceptedMembersSorted,
+        acceptedMembers: [],
+        declinedMembers: [],
+        notSetMembers: notSetUsers,
       });
 
-      channel.send(eventEmbed);
+      channel.send(eventEmbed).then(addReactionsToEvent);
     } catch (e) {
-      logger.error(e);
+      logger.error(`Could not create new event: ${e.message}`);
       return channel.send('Could not create new event');
     }
   },
 });
 
-type CreateEmbedParams = {
-  id: number;
-  title: string;
-  description: string;
-  startAt: Date;
-  endAt: Date;
+const addReactionsToEvent = async (message: Message) => {
+  try {
+    const acceptEmoji = message.guild?.emojis.cache.find(
+      (emoji) => emoji.name === emojis.accept
+    );
+    const declineEmoji = message.guild?.emojis.cache.find(
+      (emoji) => emoji.name === emojis.decline
+    );
+
+    if (!acceptEmoji) {
+      throw new Error(`Accept emoji '${emojis.accept}' not found`);
+    }
+
+    if (!declineEmoji) {
+      throw new Error(`Decline emoji '${emojis.decline}' not found`);
+    }
+
+    await message.react(acceptEmoji);
+    await message.react(declineEmoji);
+  } catch (error) {
+    logger.error(`Failed to add emojis to event: ${error.message}`);
+  }
+};
+
+type CreateEmbedParams = Event & {
   duration: string;
-  acceptedMembers: GuildMember[];
-  declinedMembers: GuildMember[];
-  notSetMembers: GuildMember[];
-  color: string;
+  acceptedMembers?: string[];
+  declinedMembers?: string[];
+  notSetMembers?: string[];
 };
 
 const createEmbed = ({
-  id,
   title,
   description,
+  type,
+  url,
   startAt,
   endAt,
   duration,
-  acceptedMembers,
-  declinedMembers,
-  notSetMembers,
+  acceptedMembers = [],
+  declinedMembers = [],
+  notSetMembers = [],
   color,
 }: CreateEmbedParams): MessageEmbed => {
+  console.log({ type });
   const timestamp = createTimestamp(startAt, endAt);
+  const typeCapitalized = type.replace(/^\w/, (char) => char.toUpperCase());
 
-  return (
-    new MessageEmbed()
-      .setColor(color)
-      .setTitle(title)
-      // .setURL('https://google.com/')
-      .setAuthor(
-        `Event #${id}`
-        // 'https://',
-        // 'https://google.com'
-      )
-      .setDescription(description)
-      // .setThumbnail('https://')
-      .addFields(
-        {
-          name: 'When',
-          value: timestamp,
-          inline: true,
-        },
-        {
-          name: 'Duration',
-          value: duration,
-          inline: true,
-        },
-        { name: '\u200B', value: '\u200B' },
-        {
-          name: `Accepted (${acceptedMembers.length})`,
-          value: formatMembers(acceptedMembers),
-          inline: true,
-        },
-        {
-          name: `Declined (${declinedMembers.length})`,
-          value: formatMembers(declinedMembers),
-          inline: true,
-        },
-        {
-          name: `Not set (${notSetMembers.length})`,
-          value: formatMembers(notSetMembers),
-          inline: true,
-        }
-      )
-      .setTimestamp()
-      .setFooter(`Set your status by reacting with the emojis below`)
-  );
+  return new MessageEmbed()
+    .setColor(color)
+    .setTitle(title)
+    .setURL(url)
+    .setAuthor(typeCapitalized)
+    .setDescription(description)
+    .addFields(
+      {
+        name: 'When',
+        value: timestamp,
+        inline: true,
+      },
+      {
+        name: 'Duration',
+        value: duration,
+        inline: true,
+      },
+      { name: '\u200B', value: '\u200B' },
+      {
+        name: `Not set (${notSetMembers.length})`,
+        value: formatMembers(notSetMembers),
+        inline: true,
+      },
+      {
+        name: `Accepted (${acceptedMembers.length})`,
+        value: formatMembers(acceptedMembers),
+        inline: true,
+      },
+      {
+        name: `Declined (${declinedMembers.length})`,
+        value: formatMembers(declinedMembers),
+        inline: true,
+      }
+    )
+    .setTimestamp()
+    .setFooter(`Set your status by reacting with the emojis below`);
 };
 
 const createTimestamp = (startTime: Date, endTime: Date): string => {
@@ -232,18 +196,9 @@ const createTimestamp = (startTime: Date, endTime: Date): string => {
   return `${date} from ${startHours} to ${endHours} server time`;
 };
 
-const createDuration = (start: Date, end: Date): string => {
-  const diffInHours = differenceInHours(end, start);
-  const differMinutes = differenceInMinutes(subHours(end, diffInHours), start);
-  const hours = diffInHours ? `${diffInHours} hours` : null;
-  const minutes = differMinutes ? `${differMinutes} minutes` : null;
-
-  return [hours, minutes].join(' ').trim();
-};
-
-const formatMembers = (members: GuildMember[]): string => {
-  if (members.length === 0) return '—';
-  return members.map((member) => `<@${member.id}>`).join('\n');
+const formatMembers = (memberIds: string[]): string => {
+  if (memberIds.length === 0) return '—';
+  return memberIds.map((memberId) => `<@${memberId}>`).join('\n');
 };
 
 const parseDurationString = (duration: string): [number, string][] => {
