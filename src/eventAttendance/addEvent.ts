@@ -5,7 +5,7 @@ import { addHours, addMinutes } from 'date-fns';
 import { formatToTimeZone } from 'date-fns-timezone';
 import { URL_CREATE_USER, URL_CREATE_EVENT } from 'constants/urls';
 import { logger } from 'logger';
-import { Event } from 'eventAttenance/eventModel';
+import { Event } from 'eventAttendance/eventModel';
 
 const timeZone = 'Europe/Berlin';
 const requiredArgs = ['title', 'desc', 'start', 'duration'];
