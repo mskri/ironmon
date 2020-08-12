@@ -80,15 +80,15 @@ export const addEvent = createCommand({
         ?.members.sort(byMemberUsername)
         .map((member) => member.id);
 
-      const eventEmbed = createEmbed({
+      const timestamp = createTimestamp(startAt, endAt);
+      const eventEmbed = createEventEmbed({
         title,
         description,
         type,
         color,
         url,
-        startAt,
-        endAt,
         duration,
+        timestamp,
         acceptedMembers: [],
         declinedMembers: [],
         notSetMembers: notSetUsers,
@@ -126,28 +126,29 @@ const addReactionsToEvent = async (message: Message) => {
   }
 };
 
-type CreateEmbedParams = Event & {
+type CreateEmbedParams = Omit<
+  Event,
+  'startAt' | 'endAt' | 'createdAt' | 'updatedAt'
+> & {
   duration: string;
+  timestamp: string;
   acceptedMembers?: string[];
   declinedMembers?: string[];
   notSetMembers?: string[];
 };
 
-const createEmbed = ({
+const createEventEmbed = ({
   title,
   description,
   type,
   url,
-  startAt,
-  endAt,
   duration,
+  timestamp,
   acceptedMembers = [],
   declinedMembers = [],
   notSetMembers = [],
   color,
 }: CreateEmbedParams): MessageEmbed => {
-  console.log({ type });
-  const timestamp = createTimestamp(startAt, endAt);
   const typeCapitalized = type.replace(/^\w/, (char) => char.toUpperCase());
 
   return new MessageEmbed()
