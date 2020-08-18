@@ -72,7 +72,22 @@ export const addEvent = createCommand({
         notSetMembers: notSetUsers,
       });
 
-      channel.send(eventEmbed).then(addReactionsToEvent);
+      channel.send(eventEmbed).then(async (eventMessage) => {
+        await axios.post<Event>(URL_CREATE_EVENT, {
+          id: eventMessage.id,
+          title,
+          description,
+          type: type.toLowerCase(),
+          color,
+          url,
+          userTag: author.tag,
+          messageId,
+          startAt: startAt.toISOString(),
+          endAt: endAt.toISOString(),
+        });
+
+        addReactionsToEvent(eventMessage);
+      });
     } catch (e) {
       logger.error(`Could not create new event: ${e.message}`);
       return channel.send('Could not create new event');
