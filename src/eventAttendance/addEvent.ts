@@ -189,10 +189,10 @@ const createEventEmbed = ({
     .setFooter(`Set your status by reacting with the emojis below`);
 };
 
-const createTimestamp = (startTime: Date, endTime: Date): string => {
-  const date = formatToTimeZone(startTime, 'dddd DD/MM', { timeZone });
-  const startHours = formatToTimeZone(startTime, 'HH:mm', { timeZone });
-  const endHours = formatToTimeZone(endTime, 'HH:mm', { timeZone });
+const createTimestamp = (startAt: Date, endAt: Date): string => {
+  const date = formatToTimeZone(startAt, 'dddd DD/MM', { timeZone });
+  const startHours = formatToTimeZone(startAt, 'HH:mm', { timeZone });
+  const endHours = formatToTimeZone(endAt, 'HH:mm', { timeZone });
 
   return `${date} from ${startHours} to ${endHours} server time`;
 };
