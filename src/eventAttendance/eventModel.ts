@@ -7,7 +7,7 @@ export type Event = {
   url: string;
   startAt: string;
   endAt: string;
-  userId: string;
+  userTag: string;
   createdAt: string;
   updatedAt: string;
 };

@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { createCommand } from 'monbot';
-import { MessageEmbed, GuildMember, Message, User } from 'discord.js';
+import { MessageEmbed, GuildMember, Message } from 'discord.js';
 import { addHours, addMinutes } from 'date-fns';
 import { formatToTimeZone } from 'date-fns-timezone';
-import { URL_CREATE_USER, URL_CREATE_EVENT } from 'constants/urls';
+import { URL_CREATE_EVENT } from 'constants/urls';
 import { logger } from 'logger';
 import { Event } from 'eventAttendance/eventModel';
 
@@ -28,16 +28,12 @@ export const addEvent = createCommand({
   name: 'addEvent',
   trigger: /^!add-event\s/i,
   run: async (
-    { channel, content, guild, member, id: messageId },
+    { channel, content, guild, author, id: messageId },
     { removeTrigger, parseArgs }
   ) => {
-    const contentWithoutTrigger = removeTrigger(content);
     const { args, hasMissingArgs, missingArgs } = parseArgs<AddEventArgs>(
-      contentWithoutTrigger,
-      {
-        requiredArgs,
-        defaults: { type: 'raid' },
-      }
+      removeTrigger(content),
+      { requiredArgs, defaults: { type: 'raid' } }
     );
 
     if (hasMissingArgs) {
@@ -45,42 +41,24 @@ export const addEvent = createCommand({
       return;
     }
 
-    const {
-      title,
-      desc: description,
-      type,
-      start: startAt,
-      duration,
-      color,
-      url,
-    } = args;
-    const endAt = calculateEnd(startAt, duration);
-
     try {
-      const eventAuthor = await axios.post<User>(URL_CREATE_USER, {
-        id: member?.user.id,
-        username: member?.user.username,
-        discordTag: member?.user.tag,
-      });
-
-      await axios.post<Event>(URL_CREATE_EVENT, {
-        id: messageId,
+      const {
         title,
-        description,
-        type: type.toLowerCase(),
+        desc: description,
+        type,
+        start: startAt,
+        duration,
         color,
         url,
-        userId: eventAuthor.data.id,
-        startAt: startAt.toISOString(),
-        endAt: endAt.toISOString(),
-      });
+      } = args;
 
+      const endAt = calculateEnd(startAt, duration);
+      const timestamp = createTimestamp(startAt, endAt);
       const notSetUsers = guild?.channels.cache
         .find(({ id }) => id === channel.id)
         ?.members.sort(byMemberUsername)
         .map((member) => member.id);
 
-      const timestamp = createTimestamp(startAt, endAt);
       const eventEmbed = createEventEmbed({
         title,
         description,
