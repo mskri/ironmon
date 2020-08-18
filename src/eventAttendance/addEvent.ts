@@ -126,9 +126,9 @@ const addReactionsToEvent = async (message: Message) => {
   }
 };
 
-type CreateEmbedParams = Omit<
+type CreateEmbedParams = Pick<
   Event,
-  'startAt' | 'endAt' | 'createdAt' | 'updatedAt'
+  'title' | 'description' | 'type' | 'color' | 'url'
 > & {
   duration: string;
   timestamp: string;
