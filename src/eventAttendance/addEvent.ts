@@ -96,7 +96,7 @@ type CreateEmbedParams = Pick<Event, 'title' | 'description' | 'type' | 'color' 
   notSetUsers?: User[];
 };
 
-const createEventEmbed = ({
+export const createEventEmbed = ({
   title,
   description,
   type,
