@@ -172,8 +172,7 @@ export const createSignupFields = ({
 
 const formatUserMentions = (users: User[]): string => {
   if (users.length === 0) return '—';
-  const usersSorted = users.sort((userA, userB) => userA.username.localeCompare(userB.username));
-  return usersSorted.map((user) => user.toString()).join('\n');
+  return users.map((user) => user.toString()).join('\n');
 };
 
 const parseDurationString = (duration: string): [number, string][] => {
