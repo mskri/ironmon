@@ -1,9 +1,7 @@
-import axios from 'axios';
 import { createCommand } from 'monbot';
-import { MessageEmbed, GuildMember, Message, User } from 'discord.js';
+import { MessageEmbed, GuildMember, Message, User, EmbedField } from 'discord.js';
 import { addHours, addMinutes } from 'date-fns';
 import { formatToTimeZone } from 'date-fns-timezone';
-import { URL_CREATE_EVENT } from 'constants/urls';
 import { logger } from 'logger';
 import { Event } from 'eventAttendance/eventModel';
 
@@ -48,8 +46,7 @@ export const addEvent = createCommand({
       const notSetUsers: User[] =
         guild?.channels.cache
           .find(({ id }) => id === channel.id)
-          ?.members.sort(byMemberUsername)
-          .map((member) => member.user) ?? [];
+          ?.members.map((member) => member.user) ?? [];
 
       const eventEmbed = createEventEmbed({
         title,
@@ -62,22 +59,7 @@ export const addEvent = createCommand({
         notSetUsers: notSetUsers,
       });
 
-      channel.send(eventEmbed).then(async (eventMessage) => {
-        await axios.post<Event>(URL_CREATE_EVENT, {
-          id: eventMessage.id,
-          title,
-          description,
-          type: type.toLowerCase(),
-          color,
-          url,
-          userTag: author.tag,
-          messageId,
-          startAt: startAt.toISOString(),
-          endAt: endAt.toISOString(),
-        });
-
-        addReactionsToEvent(eventMessage);
-      });
+      channel.send(eventEmbed).then(addReactionsToEvent);
     } catch (e) {
       logger.error(`Could not create new event: ${e.message}`);
       channel.send('Could not create new event');
@@ -146,21 +128,7 @@ const createEventEmbed = ({
         inline: true,
       },
       { name: '\u200B', value: '\u200B' },
-      {
-        name: `Not set (${notSetUsers.length})`,
-        value: formatUserMentions(notSetUsers),
-        inline: true,
-      },
-      {
-        name: `Accepted (${acceptedUsers.length})`,
-        value: formatUserMentions(acceptedUsers),
-        inline: true,
-      },
-      {
-        name: `Declined (${declinedUsers.length})`,
-        value: formatUserMentions(declinedUsers),
-        inline: true,
-      }
+      ...createSignupFields({ notSetUsers, acceptedUsers, declinedUsers })
     )
     .setTimestamp()
     .setFooter(`Set your status by reacting with the emojis below`);
@@ -174,9 +142,38 @@ const createTimestamp = (startAt: Date, endAt: Date): string => {
   return `${date} from ${startHours} to ${endHours} server time`;
 };
 
+export const createSignupFields = ({
+  notSetUsers,
+  acceptedUsers,
+  declinedUsers,
+}: {
+  notSetUsers: User[];
+  acceptedUsers: User[];
+  declinedUsers: User[];
+}): EmbedField[] => {
+  return [
+    {
+      name: `Not set (${notSetUsers.length})`,
+      value: formatUserMentions(notSetUsers),
+      inline: true,
+    },
+    {
+      name: `Accepted (${acceptedUsers.length})`,
+      value: formatUserMentions(acceptedUsers),
+      inline: true,
+    },
+    {
+      name: `Declined (${declinedUsers.length})`,
+      value: formatUserMentions(declinedUsers),
+      inline: true,
+    },
+  ];
+};
+
 const formatUserMentions = (users: User[]): string => {
   if (users.length === 0) return '—';
-  return users.map((user) => user.toString()).join('\n');
+  const usersSorted = users.sort((userA, userB) => userA.username.localeCompare(userB.username));
+  return usersSorted.map((user) => user.toString()).join('\n');
 };
 
 const parseDurationString = (duration: string): [number, string][] => {
@@ -210,6 +207,3 @@ const calculateEnd = (startTime: Date, duration: string): Date => {
 
   return endTime;
 };
-
-const byMemberUsername = (memberA: GuildMember, memberB: GuildMember) =>
-  memberA.user.username.localeCompare(memberB.user.username);
