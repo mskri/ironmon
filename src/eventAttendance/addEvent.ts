@@ -27,14 +27,11 @@ type AddEventArgs = {
 export const addEvent = createCommand({
   name: 'addEvent',
   trigger: /^!add-event\s/i,
-  run: async (
-    { channel, content, guild, author, id: messageId },
-    { removeTrigger, parseArgs }
-  ) => {
-    const { args, hasMissingArgs, missingArgs } = parseArgs<AddEventArgs>(
-      removeTrigger(content),
-      { requiredArgs, defaults: { type: 'raid' } }
-    );
+  run: async ({ channel, content, guild, author, id: messageId }, { removeTrigger, parseArgs }) => {
+    const { args, hasMissingArgs, missingArgs } = parseArgs<AddEventArgs>(removeTrigger(content), {
+      requiredArgs,
+      defaults: { type: 'raid' },
+    });
 
     if (hasMissingArgs) {
       channel.send(`Missing parameters: ${missingArgs.join(', ')}`);
@@ -42,15 +39,7 @@ export const addEvent = createCommand({
     }
 
     try {
-      const {
-        title,
-        desc: description,
-        type,
-        start: startAt,
-        duration,
-        color,
-        url,
-      } = args;
+      const { title, desc: description, type, start: startAt, duration, color, url } = args;
 
       const endAt = calculateEnd(startAt, duration);
       const timestamp = createTimestamp(startAt, endAt);
@@ -97,12 +86,9 @@ export const addEvent = createCommand({
 
 const addReactionsToEvent = async (message: Message) => {
   try {
-    const acceptEmoji = message.guild?.emojis.cache.find(
-      (emoji) => emoji.name === emojis.accept
-    );
-    const declineEmoji = message.guild?.emojis.cache.find(
-      (emoji) => emoji.name === emojis.decline
-    );
+    const emojiCache = message.guild?.emojis.cache;
+    const acceptEmoji = emojiCache?.find((emoji) => emoji.name === emojis.accept);
+    const declineEmoji = emojiCache?.find((emoji) => emoji.name === emojis.decline);
 
     if (!acceptEmoji) {
       throw new Error(`Accept emoji '${emojis.accept}' not found`);
@@ -119,10 +105,7 @@ const addReactionsToEvent = async (message: Message) => {
   }
 };
 
-type CreateEmbedParams = Pick<
-  Event,
-  'title' | 'description' | 'type' | 'color' | 'url'
-> & {
+type CreateEmbedParams = Pick<Event, 'title' | 'description' | 'type' | 'color' | 'url'> & {
   duration: string;
   timestamp: string;
   acceptedMembers?: string[];
