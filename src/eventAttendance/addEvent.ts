@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { createCommand } from 'monbot';
-import { MessageEmbed, GuildMember, Message } from 'discord.js';
+import { MessageEmbed, GuildMember, Message, User } from 'discord.js';
 import { addHours, addMinutes } from 'date-fns';
 import { formatToTimeZone } from 'date-fns-timezone';
 import { URL_CREATE_EVENT } from 'constants/urls';
@@ -28,12 +28,12 @@ export const addEvent = createCommand({
   name: 'addEvent',
   trigger: /^!add-event\s/i,
   run: async ({ channel, content, guild, author, id: messageId }, { removeTrigger, parseArgs }) => {
-    const { args, hasMissingArgs, missingArgs } = parseArgs<AddEventArgs>(removeTrigger(content), {
+    const { args, missingArgs } = parseArgs<AddEventArgs>(removeTrigger(content), {
       requiredArgs,
       defaults: { type: 'raid' },
     });
 
-    if (hasMissingArgs) {
+    if (missingArgs.length > 0) {
       channel.send(`Missing parameters: ${missingArgs.join(', ')}`);
       return;
     }
@@ -43,10 +43,13 @@ export const addEvent = createCommand({
 
       const endAt = calculateEnd(startAt, duration);
       const timestamp = createTimestamp(startAt, endAt);
-      const notSetUsers = guild?.channels.cache
-        .find(({ id }) => id === channel.id)
-        ?.members.sort(byMemberUsername)
-        .map((member) => member.id);
+
+      // Finds all the users in the channel and adds them to the event
+      const notSetUsers: User[] =
+        guild?.channels.cache
+          .find(({ id }) => id === channel.id)
+          ?.members.sort(byMemberUsername)
+          .map((member) => member.user) ?? [];
 
       const eventEmbed = createEventEmbed({
         title,
@@ -56,9 +59,7 @@ export const addEvent = createCommand({
         url,
         duration,
         timestamp,
-        acceptedMembers: [],
-        declinedMembers: [],
-        notSetMembers: notSetUsers,
+        notSetUsers: notSetUsers,
       });
 
       channel.send(eventEmbed).then(async (eventMessage) => {
@@ -79,7 +80,7 @@ export const addEvent = createCommand({
       });
     } catch (e) {
       logger.error(`Could not create new event: ${e.message}`);
-      return channel.send('Could not create new event');
+      channel.send('Could not create new event');
     }
   },
 });
@@ -108,9 +109,9 @@ const addReactionsToEvent = async (message: Message) => {
 type CreateEmbedParams = Pick<Event, 'title' | 'description' | 'type' | 'color' | 'url'> & {
   duration: string;
   timestamp: string;
-  acceptedMembers?: string[];
-  declinedMembers?: string[];
-  notSetMembers?: string[];
+  acceptedUsers?: User[];
+  declinedUsers?: User[];
+  notSetUsers?: User[];
 };
 
 const createEventEmbed = ({
@@ -120,9 +121,9 @@ const createEventEmbed = ({
   url,
   duration,
   timestamp,
-  acceptedMembers = [],
-  declinedMembers = [],
-  notSetMembers = [],
+  acceptedUsers = [],
+  declinedUsers = [],
+  notSetUsers = [],
   color,
 }: CreateEmbedParams): MessageEmbed => {
   const typeCapitalized = type.replace(/^\w/, (char) => char.toUpperCase());
@@ -146,18 +147,18 @@ const createEventEmbed = ({
       },
       { name: '\u200B', value: '\u200B' },
       {
-        name: `Not set (${notSetMembers.length})`,
-        value: formatMembers(notSetMembers),
+        name: `Not set (${notSetUsers.length})`,
+        value: formatUserMentions(notSetUsers),
         inline: true,
       },
       {
-        name: `Accepted (${acceptedMembers.length})`,
-        value: formatMembers(acceptedMembers),
+        name: `Accepted (${acceptedUsers.length})`,
+        value: formatUserMentions(acceptedUsers),
         inline: true,
       },
       {
-        name: `Declined (${declinedMembers.length})`,
-        value: formatMembers(declinedMembers),
+        name: `Declined (${declinedUsers.length})`,
+        value: formatUserMentions(declinedUsers),
         inline: true,
       }
     )
@@ -173,9 +174,9 @@ const createTimestamp = (startAt: Date, endAt: Date): string => {
   return `${date} from ${startHours} to ${endHours} server time`;
 };
 
-const formatMembers = (memberIds: string[]): string => {
-  if (memberIds.length === 0) return '—';
-  return memberIds.map((memberId) => `<@${memberId}>`).join('\n');
+const formatUserMentions = (users: User[]): string => {
+  if (users.length === 0) return '—';
+  return users.map((user) => user.toString()).join('\n');
 };
 
 const parseDurationString = (duration: string): [number, string][] => {
