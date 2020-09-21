@@ -62,3 +62,11 @@ Creates a event post like this
 | `duration` | `Xh | Ym | Xh Ym`        | yes      | Duration of the event in hours and/or minutes. For example `2h 30m`, `4h` or `45m`                                                                                                                                                                     |
 | `type`     | `String`                 | no       | Event type, shown above the title. Can be used e.g. for showing raid level. If set to "normal", "heroic" or "mythic" the event post will have different accent color to more easily distinguish between different level of raids. Defaults to `"Raid"` |
 | `debug`    | `Boolean`                | no       | If set to true bot will not delete the post that triggered new event to be created. Defaults to `false`                                                                                                                                                |
+
+### Signups reporting
+
+By default when user signs-up for an event or changes their status the bot will post message to `#attendance-log` channel.
+
+Report channel can be changed in `config.ts` by changing the name of the channel in `signups.reportChannel`.
+
+Reporting can be turned off completely by setting `signups.report` to `false` in `config.ts`

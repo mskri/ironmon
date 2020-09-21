@@ -3,12 +3,7 @@ import { logger } from 'logger';
 import { User, MessageEmbed, EmbedField, Guild, TextChannel } from 'discord.js';
 import { createSignupFields } from './addEvent';
 import { getMembersInChannel } from '../utils';
-
-const reportChannel = 'attendance-log';
-const statusColorMap = new Map<string, string>([
-  ['accepted', '#69e4a6'],
-  ['declined', '#ff7285'],
-]);
+import { signups } from 'config';
 
 export const eventSignup = createReaction({
   name: 'event-signup',
@@ -61,15 +56,19 @@ export const eventSignup = createReaction({
       const newSignupFields = createSignupFields({ notSetUsers, acceptedUsers, declinedUsers });
       reaction.message.edit(eventEmbed.spliceFields(3, 3, newSignupFields));
 
-      const logChannel = guild.channels.cache.find((c) => c.name === reportChannel) as TextChannel;
-      const signupLogEmbed = createSignupNoticeEmbed({
-        user,
-        messageUrl: `https://discordapp.com/channels/${guild.id}/${channel.id}/${messageId}`,
-        color: statusColorMap.get(emoji.name) || '#000',
-        status: emoji.name,
-        oldStatus,
-      });
-      logChannel.send(signupLogEmbed);
+      if (signups.report) {
+        const logChannel = guild.channels.cache.find(
+          (c) => c.name === signups.reportChannel
+        ) as TextChannel;
+        const signupLogEmbed = createSignupNoticeEmbed({
+          user,
+          messageUrl: `https://discordapp.com/channels/${guild.id}/${channel.id}/${messageId}`,
+          color: signups.statusColorMap.get(emoji.name) || '#000',
+          status: emoji.name,
+          oldStatus,
+        });
+        logChannel.send(signupLogEmbed);
+      }
     }
 
     try {
