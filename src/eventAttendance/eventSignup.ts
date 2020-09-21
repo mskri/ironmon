@@ -2,6 +2,7 @@ import { createReaction } from 'monbot';
 import { logger } from 'logger';
 import { User, MessageEmbed, EmbedField, Guild, TextChannel } from 'discord.js';
 import { createSignupFields } from './addEvent';
+import { getMembersInChannel } from '../utils';
 
 const reportChannel = 'attendance-log';
 const statusColorMap = new Map<string, string>([
@@ -50,11 +51,12 @@ export const eventSignup = createReaction({
     }
 
     if (emoji.name !== oldStatus) {
-      const notSetUsers: User[] =
-        guild?.channels.cache
-          .find(({ id }) => id === channel.id)
-          ?.members.map((member) => member.user)
-          .filter((user) => !acceptedUsers.includes(user) && !declinedUsers.includes(user)) ?? [];
+      const notSetUsers =
+        getMembersInChannel({
+          channels: guild?.channels.cache,
+          channelId: channel.id,
+          bots: false,
+        }).filter((user) => !acceptedUsers.includes(user) && !declinedUsers.includes(user)) ?? [];
 
       const newSignupFields = createSignupFields({ notSetUsers, acceptedUsers, declinedUsers });
       reaction.message.edit(eventEmbed.spliceFields(3, 3, newSignupFields));

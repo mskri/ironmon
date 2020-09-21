@@ -1,9 +1,18 @@
 import { createCommand } from 'monbot';
-import { MessageEmbed, GuildMember, Message, User, EmbedField } from 'discord.js';
+import {
+  MessageEmbed,
+  GuildMember,
+  Message,
+  User,
+  EmbedField,
+  Collection,
+  GuildChannel,
+} from 'discord.js';
 import { addHours, addMinutes } from 'date-fns';
 import { formatToTimeZone } from 'date-fns-timezone';
 import { logger } from 'logger';
 import { Event } from 'eventAttendance/eventModel';
+import { getMembersInChannel } from '../utils';
 
 const timeZone = 'Europe/Berlin';
 const requiredArgs = ['title', 'desc', 'start', 'duration'];
@@ -25,7 +34,7 @@ type AddEventArgs = {
 export const addEvent = createCommand({
   name: 'addEvent',
   trigger: /^!add-event\s/i,
-  run: async ({ channel, content, guild, author, id: messageId }, { removeTrigger, parseArgs }) => {
+  run: async ({ channel, content, guild }, { removeTrigger, parseArgs }) => {
     const { args, missingArgs } = parseArgs<AddEventArgs>(removeTrigger(content), {
       requiredArgs,
       defaults: { type: 'raid' },
@@ -42,11 +51,11 @@ export const addEvent = createCommand({
       const endAt = calculateEnd(startAt, duration);
       const timestamp = createTimestamp(startAt, endAt);
 
-      // Finds all the users in the channel and adds them to the event
-      const notSetUsers: User[] =
-        guild?.channels.cache
-          .find(({ id }) => id === channel.id)
-          ?.members.map((member) => member.user) ?? [];
+      const notSetUsers = getMembersInChannel({
+        channels: guild?.channels.cache,
+        channelId: channel.id,
+        bots: false,
+      });
 
       const eventEmbed = createEventEmbed({
         title,
@@ -56,7 +65,7 @@ export const addEvent = createCommand({
         url,
         duration,
         timestamp,
-        notSetUsers: notSetUsers,
+        notSetUsers,
       });
 
       channel.send(eventEmbed).then(addReactionsToEvent);
