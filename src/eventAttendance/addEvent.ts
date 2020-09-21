@@ -1,13 +1,5 @@
 import { createCommand } from 'monbot';
-import {
-  MessageEmbed,
-  GuildMember,
-  Message,
-  User,
-  EmbedField,
-  Collection,
-  GuildChannel,
-} from 'discord.js';
+import { MessageEmbed, Message, User, EmbedField } from 'discord.js';
 import { addHours, addMinutes } from 'date-fns';
 import { formatToTimeZone } from 'date-fns-timezone';
 import { logger } from 'logger';
