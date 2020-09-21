@@ -2,6 +2,8 @@
 
 A discord bot for managing guild events. Created originally for my World of Warcraft guild to manage our signups for raids.
 
+As this is a simple attendnace bot it does not require a database for keeping track of signed up users. Event messages hold the information for the event.
+
 ## Development
 
 ```bash
