@@ -9,7 +9,9 @@ npm i
 npm run dev
 ```
 
-### Setting up the bot
+## Setting up the bot
+
+### Bot config
 
 For the bot to work you need to setup `.env` file. File called `.env.example` contains example of the `.env` file you need to have. Copy it and rename it then to `.env`. Then change the values to your own ones.
 
@@ -20,6 +22,21 @@ For the bot to work you need to setup `.env` file. File called `.env.example` co
 
 \* You can get the secret authorization by following this guide [Create a Discord bot under 15 minutes](https://thomlom.dev/create-a-discord-bot-under-15-minutes/). Getting the token start at "Get that token"-step.  
 \*\* Find out how to get your Discord ID from the [official documentation](https://support.discordapp.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID-).
+
+### Reaction emojis
+
+For [`!add-event`](#add-event---create-a-new-event-post) to work you need to have custom emojis named `:accepted:` and `:declined:`. These will be used for the reaction buttons under event posts.
+
+<img width="140" src="docs/config-add-event-custom-reactions.png" />
+
+_Discord custom emojis needed for `!add-event` to work_
+
+Here are basic emojis you can use:
+
+- [assets/accepted.png](assets/accepted.png)
+- [assets/declined.png](assets/declined.png)
+
+Alternatively, you can use any existing emoji you have added. If they have different name change the reaction name to be used for the buttons in `config.ts` under `addEventReactions`.
 
 ## Commands
 
