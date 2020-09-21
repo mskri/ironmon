@@ -111,9 +111,9 @@ export const createEventEmbed = ({
   color,
 }: CreateEmbedParams): MessageEmbed => {
   const typeCapitalized = type.replace(/^\w/, (char) => char.toUpperCase());
-
+  const eventColor = getEventColorByType(type, color);
   return new MessageEmbed()
-    .setColor(color)
+    .setColor(eventColor)
     .setTitle(title)
     .setURL(url)
     .setAuthor(typeCapitalized)
@@ -207,4 +207,17 @@ const calculateEnd = (startTime: Date, duration: string): Date => {
   });
 
   return endTime;
+};
+
+const getEventColorByType = (type: string, defaultColor: string): string => {
+  switch (type.toLocaleLowerCase()) {
+    case 'normal':
+      return '#25948e';
+    case 'heroic':
+      return '#254694';
+    case 'mythic':
+      return '#73289c';
+    default:
+      return defaultColor;
+  }
 };
