@@ -1,15 +1,21 @@
 import { createReaction } from 'monbot';
 import { logger } from 'logger';
-import { User, MessageEmbed, EmbedField, Guild } from 'discord.js';
+import { User, MessageEmbed, EmbedField, Guild, TextChannel } from 'discord.js';
 import { createSignupFields } from './addEvent';
+
+const reportChannel = 'attendance-log';
+const statusColorMap = new Map<string, string>([
+  ['accepted', '#69e4a6'],
+  ['declined', '#ff7285'],
+]);
 
 export const eventSignup = createReaction({
   name: 'event-signup',
   trigger: ['accepted', 'declined'],
-  onAdd: async (reaction, user) => {
+  onAdd: async (reaction, { user }) => {
     const {
       emoji,
-      message: { reactions, embeds, guild, channel },
+      message: { reactions, embeds, guild, channel, id: messageId },
     } = reaction;
 
     if (!guild) {
@@ -20,17 +26,19 @@ export const eventSignup = createReaction({
     const [eventEmbed] = embeds;
     const { acceptedUsersField, declinedUsersField } = getSignupFields(eventEmbed);
 
-    const acceptedUsers: User[] = await extractUsersFromFields({
+    const allAcceptedUsers: User[] = await extractUsersFromFields({
       usersField: acceptedUsersField,
-      user,
       guild,
     });
+    const acceptedUsers = allAcceptedUsers.filter((u) => u.id !== user.id);
 
-    const declinedUsers: User[] = await extractUsersFromFields({
+    const allDeclinedUsers: User[] = await extractUsersFromFields({
       usersField: declinedUsersField,
-      user,
       guild,
     });
+    const declinedUsers = allDeclinedUsers.filter((u) => u.id !== user.id);
+
+    const oldStatus = findOldStatus(user, allAcceptedUsers, allDeclinedUsers);
 
     switch (emoji.name) {
       case 'accepted':
@@ -41,14 +49,26 @@ export const eventSignup = createReaction({
         break;
     }
 
-    const notSetUsers: User[] =
-      guild?.channels.cache
-        .find(({ id }) => id === channel.id)
-        ?.members.map((member) => member.user)
-        .filter((user) => !acceptedUsers.includes(user) && !declinedUsers.includes(user)) ?? [];
+    if (emoji.name !== oldStatus) {
+      const notSetUsers: User[] =
+        guild?.channels.cache
+          .find(({ id }) => id === channel.id)
+          ?.members.map((member) => member.user)
+          .filter((user) => !acceptedUsers.includes(user) && !declinedUsers.includes(user)) ?? [];
 
-    const newSignupFields = createSignupFields({ notSetUsers, acceptedUsers, declinedUsers });
-    reaction.message.edit(eventEmbed.spliceFields(3, 3, newSignupFields));
+      const newSignupFields = createSignupFields({ notSetUsers, acceptedUsers, declinedUsers });
+      reaction.message.edit(eventEmbed.spliceFields(3, 3, newSignupFields));
+
+      const logChannel = guild.channels.cache.find((c) => c.name === reportChannel) as TextChannel;
+      const signupLogEmbed = createSignupNoticeEmbed({
+        user,
+        messageUrl: `https://discordapp.com/channels/${guild.id}/${channel.id}/${messageId}`,
+        color: statusColorMap.get(emoji.name) || '#000',
+        status: emoji.name,
+        oldStatus,
+      });
+      logChannel.send(signupLogEmbed);
+    }
 
     try {
       reactions.resolve(reaction)?.users.remove(user.id);
@@ -71,11 +91,9 @@ const getSignupFields = (eventEmbed: MessageEmbed) => {
 
 const extractUsersFromFields = async ({
   usersField,
-  user,
   guild,
 }: {
   usersField: EmbedField | undefined;
-  user: User;
   guild: Guild;
 }) => {
   return (
@@ -86,9 +104,42 @@ const extractUsersFromFields = async ({
       }) ?? []
     )
   ).reduce((users: User[], fieldUser: User | undefined) => {
-    if (fieldUser && fieldUser.id !== user.id) {
+    if (fieldUser) {
       return users.concat(fieldUser);
     }
     return users;
   }, []);
+};
+
+export const createSignupNoticeEmbed = ({
+  user,
+  messageUrl,
+  color,
+  status,
+  oldStatus,
+}: {
+  user: User;
+  messageUrl: string;
+  color: string;
+  status: string;
+  oldStatus: string | null;
+}): MessageEmbed => {
+  const newStatus = `${user} signed up as ${status}`;
+  const changeStatus = `${user} changed status to ${status}`;
+  const title = oldStatus ? changeStatus : newStatus;
+
+  return new MessageEmbed()
+    .setColor(color)
+    .setDescription(`${title}\n${messageUrl}`)
+    .setTimestamp();
+};
+
+const findOldStatus = (user, acceptedUsers, declinedUsers) => {
+  if (declinedUsers.includes(user)) {
+    return 'declined';
+  }
+  if (acceptedUsers.includes(user)) {
+    return 'accepted';
+  }
+  return null;
 };
