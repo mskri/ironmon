@@ -17,15 +17,17 @@ type AddEventArgs = {
   duration: string;
   color: string;
   url: string;
+  debug: boolean;
 };
 
 export const addEvent = createCommand({
   name: 'addEvent',
   trigger: /^!add-event\s/i,
-  run: async ({ channel, content, guild }, { removeTrigger, parseArgs }) => {
+  run: async (message, { removeTrigger, parseArgs }) => {
+    const { channel, content, guild } = message;
     const { args, missingArgs } = parseArgs<AddEventArgs>(removeTrigger(content), {
       requiredArgs,
-      defaults: { type: 'raid' },
+      defaults: { type: 'raid', debug: false },
     });
 
     if (missingArgs.length > 0) {
@@ -34,7 +36,7 @@ export const addEvent = createCommand({
     }
 
     try {
-      const { title, desc: description, type, start: startAt, duration, color, url } = args;
+      const { title, desc: description, type, start: startAt, duration, color, url, debug } = args;
 
       const endAt = calculateEnd(startAt, duration);
       const timestamp = createTimestamp(startAt, endAt);
@@ -57,6 +59,9 @@ export const addEvent = createCommand({
       });
 
       channel.send(eventEmbed).then(addReactionsToEvent);
+      if (!debug) {
+        message.delete();
+      }
     } catch (e) {
       logger.error(`Could not create new event: ${e.message}`);
       channel.send('Could not create new event');

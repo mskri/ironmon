@@ -54,10 +54,11 @@ Creates a event post like this
 
 #### Options
 
-| Parameter  | Format                   | Required | Description                                                                                      |
-| ---------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------ |
-| `title`    | `String`                 | yes      | Headline shown in the event message                                                              |
-| `desc`     | `String`                 | no       | Description of the event                                                                         |
-| `start`    | `Date` in ISO8601 format | yes      | Start date and time of the event                                                                 |
-| `duration` | `Xh | Ym | Xh Ym`        | yes      | Duration of the event in hours and/or minutes. For example `2h 30m`, `4h` or `45m`               |
-| `type`     | `String`                 | no       | Event type, shown above the title. Can be used e.g. for showing raid level. Defaults to `"Raid"` |
+| Parameter  | Format/type              | Required | Description                                                                                             |
+| ---------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------- |
+| `title`    | `String`                 | yes      | Headline shown in the event message                                                                     |
+| `desc`     | `String`                 | no       | Description of the event                                                                                |
+| `start`    | `Date` in ISO8601 format | yes      | Start date and time of the event                                                                        |
+| `duration` | `Xh | Ym | Xh Ym`        | yes      | Duration of the event in hours and/or minutes. For example `2h 30m`, `4h` or `45m`                      |
+| `type`     | `String`                 | no       | Event type, shown above the title. Can be used e.g. for showing raid level. Defaults to `"Raid"`        |
+| `debug`    | `Boolean`                | no       | If set to true bot will not delete the post that triggered new event to be created. Defaults to `false` |
