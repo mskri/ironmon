@@ -13,13 +13,9 @@ import { formatToTimeZone } from 'date-fns-timezone';
 import { logger } from 'logger';
 import { Event } from 'eventAttendance/eventModel';
 import { getMembersInChannel } from '../utils';
+import { addEventReactions, timeZone } from 'config';
 
-const timeZone = 'Europe/Berlin';
 const requiredArgs = ['title', 'desc', 'start', 'duration'];
-const emojis = {
-  accept: 'accepted',
-  decline: 'declined',
-};
 
 type AddEventArgs = {
   title: string;
@@ -79,15 +75,15 @@ export const addEvent = createCommand({
 const addReactionsToEvent = async (message: Message) => {
   try {
     const emojiCache = message.guild?.emojis.cache;
-    const acceptEmoji = emojiCache?.find((emoji) => emoji.name === emojis.accept);
-    const declineEmoji = emojiCache?.find((emoji) => emoji.name === emojis.decline);
+    const acceptEmoji = emojiCache?.find((emoji) => emoji.name === addEventReactions.accept);
+    const declineEmoji = emojiCache?.find((emoji) => emoji.name === addEventReactions.decline);
 
     if (!acceptEmoji) {
-      throw new Error(`Accept emoji '${emojis.accept}' not found`);
+      throw new Error(`Accept emoji '${addEventReactions.accept}' not found`);
     }
 
     if (!declineEmoji) {
-      throw new Error(`Decline emoji '${emojis.decline}' not found`);
+      throw new Error(`Decline emoji '${addEventReactions.decline}' not found`);
     }
 
     await message.react(acceptEmoji);
