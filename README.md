@@ -11,6 +11,15 @@ npm i
 npm run dev
 ```
 
+## Production
+
+You are required to have set up your `.env` file.
+
+```
+docker build -t ironmon .
+docker run -d --env-file .env ironmon
+```
+
 ## Setting up the bot
 
 ### Bot config
