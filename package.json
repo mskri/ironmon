@@ -37,7 +37,7 @@
     }
   },
   "dependencies": {
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "date-fns": "^2.15.0",
     "date-fns-timezone": "^0.1.4",
     "discord.js": "^12.2.0",
